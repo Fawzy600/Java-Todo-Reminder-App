@@ -21,25 +21,33 @@ public class MainFrame extends JFrame {
         setLocationRelativeTo(null); // Centers the window on screen
 
         // 2. Setup the Table
-        String[] columnNames = {"Title", "Due Date", "Priority", "Status"};
-        tableModel = new DefaultTableModel(columnNames, 0);
+        // Added "Due Time" as a separate column
+        String[] columnNames = {"Title", "Due Date", "Due Time", "Priority", "Status"};
+
+        // Override the default model to make all cells non-editable
+        tableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // This disables the Excel-style typing!
+            }
+        };
+
         taskTable = new JTable(tableModel);
-
-        // IMPORTANT: Apply the custom renderer AFTER the table is created
         taskTable.setDefaultRenderer(Object.class, new TaskCellRenderer());
-
         // 3. Layout Organization
         setLayout(new BorderLayout());
         add(new JScrollPane(taskTable), BorderLayout.CENTER);
 
-        // 4. Buttons Panel (Need to create the panel first!)
+        // 4. Buttons Panel
         JPanel buttonPanel = new JPanel();
         JButton addButton = new JButton("Add Task");
         JButton editButton = new JButton("Edit Task");
+        JButton detailsButton = new JButton("Show Details"); // NEW
         JButton deleteButton = new JButton("Delete Task");
         JButton doneButton = new JButton("Mark Done");
 
         buttonPanel.add(addButton);
+        buttonPanel.add(detailsButton); // NEW (I put it next to Add/Edit)
         buttonPanel.add(editButton);
         buttonPanel.add(deleteButton);
         buttonPanel.add(doneButton);
@@ -54,6 +62,24 @@ public class MainFrame extends JFrame {
             dialog.setVisible(true);
         });
 
+        // ... your existing addButton and editButton listeners ...
+
+        // Trigger for the new Show Details button
+        detailsButton.addActionListener(e -> showTaskDetails());
+
+        // Trigger for double-clicking a row in the table
+        taskTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                // Check if it was a double-click
+                if (e.getClickCount() == 2) {
+                    showTaskDetails();
+                }
+            }
+        });
+
+        // ... your existing deleteButton and doneButton listeners ...
+
         editButton.addActionListener(e -> openEditDialog());
         deleteButton.addActionListener(e -> deleteTask());
         doneButton.addActionListener(e -> markTaskDone());
@@ -66,11 +92,16 @@ public class MainFrame extends JFrame {
         // Clear existing rows
         tableModel.setRowCount(0);
 
+        // Formatters to split the Date and Time cleanly
+        java.time.format.DateTimeFormatter dateFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        java.time.format.DateTimeFormatter timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
+
         // Fill with current tasks from manager
         for (Task task : taskManager.getAllTasks()) {
             Object[] row = {
                     task.getTitle(),
-                    task.getDueDate().toString(),
+                    task.getDueDate().format(dateFormatter), // Column 2: Just the Date
+                    task.getDueDate().format(timeFormatter), // Column 3: Just the Time
                     task.getPriority(),
                     task.getStatus()
             };
@@ -102,6 +133,17 @@ public class MainFrame extends JFrame {
         }
     }
 
+    private void showTaskDetails() {
+        int selectedRow = taskTable.getSelectedRow();
+        if (selectedRow >= 0) {
+            Task selectedTask = taskManager.getAllTasks().get(selectedRow);
+            // Open our new Details Dialog
+            TaskDetailsDialog dialog = new TaskDetailsDialog(this, selectedTask);
+            dialog.setVisible(true);
+        } else {
+            JOptionPane.showMessageDialog(this, "Please select a task to view its details.");
+        }
+    }
     private void markTaskDone() {
         int selectedRow = taskTable.getSelectedRow();
         if (selectedRow >= 0) {

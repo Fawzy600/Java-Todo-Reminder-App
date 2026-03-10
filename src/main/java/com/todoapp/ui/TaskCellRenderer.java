@@ -14,7 +14,7 @@ public class TaskCellRenderer extends DefaultTableCellRenderer {
         Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
         // Get the status from the 4th column (index 3)
-        Object statusValue = table.getModel().getValueAt(row, 3);
+        Object statusValue = table.getModel().getValueAt(row, 4);
 
         if (!isSelected) {
             if (Status.OVERDUE.equals(statusValue)) {
